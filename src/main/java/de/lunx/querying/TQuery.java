@@ -10,14 +10,12 @@ import de.lunx.data.obj.QueryCondition;
 import de.lunx.data.obj.TColumnType;
 import de.lunx.data.obj.TDatabase;
 import de.lunx.data.obj.TTable;
-import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,7 +33,7 @@ public class TQuery {
             type = Type.valueOf(o.get("type").getAsString().toUpperCase());
         } catch (IllegalArgumentException ex) {
             printStackTraceLevel(log, System.Logger.Level.DEBUG, ex);
-            return new QueryResult(QueryResultType.UNKNOWN_ACTION, 0);
+            return new QueryResult(QueryResultType.UNKNOWN_ACTION, type, 0);
         }
         switch (type) {
             case GET_DATA -> {
@@ -44,13 +42,13 @@ public class TQuery {
 
                 TDatabase database = DataManager.getInstance().getDatabase(dbName);
                 if (database == null) {
-                    return new QueryResult(QueryResultType.UNKNOWN_DB, 0);
+                    return new QueryResult(QueryResultType.UNKNOWN_DB, type, 0);
                 }
                 TTable table = database.getTable(tableName);
                 if (table == null)
-                    return new QueryResult(QueryResultType.UNKNOWN_TABLE, 0);
+                    return new QueryResult(QueryResultType.UNKNOWN_TABLE, type, 0);
 
-                return new QueryResult(QueryResultType.RESULT_SET, 0,
+                return new QueryResult(QueryResultType.RESULT_SET, type, 0,
                         table.getData());
             }
             case CLEAR_TABLE -> {
@@ -59,15 +57,15 @@ public class TQuery {
 
                 TDatabase database = DataManager.getInstance().getDatabase(dbName);
                 if (database == null) {
-                    return new QueryResult(QueryResultType.UNKNOWN_DB, 0);
+                    return new QueryResult(QueryResultType.UNKNOWN_DB, type, 0);
                 }
                 TTable table = database.getTable(tableName);
                 if (table == null)
-                    return new QueryResult(QueryResultType.UNKNOWN_TABLE, 0);
+                    return new QueryResult(QueryResultType.UNKNOWN_TABLE, type, 0);
 
                 int rows = table.getData().size();
                 table.truncate();
-                return new QueryResult(QueryResultType.SUCCESS, rows);
+                return new QueryResult(QueryResultType.SUCCESS, type, rows);
             }
             case UPDATE_DATA -> {
                 List<QueryCondition> conditions = new ArrayList<>();
@@ -76,7 +74,7 @@ public class TQuery {
                 }
 
                 if (conditions.isEmpty() && DataManager.getInstance().getConfiguration().isSafeMode()) {
-                    return new QueryResult(QueryResultType.SAFE_MODE_ENABLED, 0);
+                    return new QueryResult(QueryResultType.SAFE_MODE_ENABLED, type, 0);
                 }
 
                 String dbName = o.get("database").getAsString();
@@ -91,11 +89,11 @@ public class TQuery {
 
                 TDatabase database = DataManager.getInstance().getDatabase(dbName);
                 if (database == null) {
-                    return new QueryResult(QueryResultType.UNKNOWN_DB, 0);
+                    return new QueryResult(QueryResultType.UNKNOWN_DB, type, 0);
                 }
                 TTable table = database.getTable(tableName);
                 if (table == null)
-                    return new QueryResult(QueryResultType.UNKNOWN_TABLE, 0);
+                    return new QueryResult(QueryResultType.UNKNOWN_TABLE, type, 0);
 
                 AtomicInteger changedRows = new AtomicInteger();
 
@@ -113,7 +111,7 @@ public class TQuery {
                 });
                 DataManager.getInstance().save(database);
 
-                return new QueryResult(QueryResultType.SUCCESS, changedRows.get());
+                return new QueryResult(QueryResultType.SUCCESS, type, changedRows.get());
             }
             case DELETE_DATA -> {
                 List<QueryCondition> conditions = new ArrayList<>();
@@ -122,7 +120,7 @@ public class TQuery {
                 }
 
                 if (conditions.isEmpty() && DataManager.getInstance().getConfiguration().isSafeMode()) {
-                    return new QueryResult(QueryResultType.SAFE_MODE_ENABLED, 0);
+                    return new QueryResult(QueryResultType.SAFE_MODE_ENABLED, type, 0);
                 }
 
                 String dbName = o.get("database").getAsString();
@@ -137,11 +135,11 @@ public class TQuery {
 
                 TDatabase database = DataManager.getInstance().getDatabase(dbName);
                 if (database == null) {
-                    return new QueryResult(QueryResultType.UNKNOWN_DB, 0);
+                    return new QueryResult(QueryResultType.UNKNOWN_DB, type, 0);
                 }
                 TTable table = database.getTable(tableName);
                 if (table == null)
-                    return new QueryResult(QueryResultType.UNKNOWN_TABLE, 0);
+                    return new QueryResult(QueryResultType.UNKNOWN_TABLE, type, 0);
 
                 AtomicInteger changedRows = new AtomicInteger();
 
@@ -160,7 +158,7 @@ public class TQuery {
 
                 DataManager.getInstance().save(database);
 
-                return new QueryResult(QueryResultType.SUCCESS, changedRows.get());
+                return new QueryResult(QueryResultType.SUCCESS, type, changedRows.get());
             }
             case CREATE_DATABASE -> {
                 String dbName = o.get("name").getAsString();
@@ -170,7 +168,7 @@ public class TQuery {
                 }
                 TDatabase database = DataManager.getInstance().createDatabase(dbName, charset);
                 DataManager.getInstance().save(database);
-                return new QueryResult(QueryResultType.SUCCESS, 1);
+                return new QueryResult(QueryResultType.SUCCESS, type, 1);
             }
             case CREATE_USER -> {
                 String username = o.get("username").getAsString();
@@ -186,12 +184,28 @@ public class TQuery {
                 User user = new User(username, password).addPermissions(permissions);
                 user.setRole(role);
                 AuthManager.getInstance().register(user);
-                return new QueryResult(QueryResultType.SUCCESS, 1);
+                return new QueryResult(QueryResultType.SUCCESS, type, 1);
+            } case GET_TABLES -> {
+                String dbName = o.get("database").getAsString();
+
+                TDatabase database = DataManager.getInstance().getDatabase(dbName);
+                if (database == null) {
+                    return new QueryResult(QueryResultType.UNKNOWN_DB, type, 0);
+                }
+
+                List<HashMap<String, Object>> tables = new ArrayList<>();
+                for (TTable t : database.getTables()) {
+                    HashMap<String, Object> h = new HashMap<>();
+                    h.put("tables", t.getName());
+                    tables.add(h);
+                }
+
+                return new QueryResult(QueryResultType.RESULT_SET, type, 0, tables);
             }
         }
 
         //TODO: add other types
-        return new QueryResult(QueryResultType.FAILED, 0);
+        return new QueryResult(QueryResultType.FAILED, type, 0);
     }
 
     private static Object convertJsonObj(JsonElement element, TColumnType type) {
@@ -219,17 +233,23 @@ public class TQuery {
     public static class QueryResult {
         @Getter
         private final QueryResultType type;
+        @Getter
+        private final Type queryType;
+        @Getter
         private final int rowsChanged;
+        @Getter
         private final List<HashMap<String, Object>> resultSet;
 
-        public QueryResult(QueryResultType type, int rowsChanged) {
+        public QueryResult(QueryResultType type, Type queryType, int rowsChanged) {
             this.type = type;
+            this.queryType = queryType;
             this.rowsChanged = rowsChanged;
             resultSet = new ArrayList<>();
         }
 
-        public QueryResult(QueryResultType type, int rowsChanged, List<HashMap<String, Object>> resultSet) {
+        public QueryResult(QueryResultType type, Type queryType, int rowsChanged, List<HashMap<String, Object>> resultSet) {
             this.type = type;
+            this.queryType = queryType;
             this.rowsChanged = rowsChanged;
             this.resultSet = resultSet;
         }
@@ -247,24 +267,34 @@ public class TQuery {
     }
 
     public enum Type {
-        GET_DATA,
-        INSERT_DATA,
-        UPDATE_DATA,
-        DELETE_DATA,
-        CREATE_TABLE,
-        DELETE_TABLE,
-        CLEAR_TABLE,
-        GRANT_PERMISSION,
-        CREATE_DATABASE,
-        DELETE_DATABASE,
+        GET_DATA(true, false),
+        GET_TABLES(true, false),
+        INSERT_DATA(false, true),
+        UPDATE_DATA(false, true),
+        DELETE_DATA(false, true),
+        CREATE_TABLE(false, true),
+        DELETE_TABLE(false, true),
+        EDIT_TABLE(false, true),
+        CLEAR_TABLE(false, true),
+        GRANT_PERMISSION(false, true),
+        CREATE_DATABASE(false, true),
+        DELETE_DATABASE(false, true),
 
-        CREATE_USER,
-        DEACTIVATE_USER,
-        EDIT_USER,
-        DELETE_USER,
+        CREATE_USER(false, true),
+        DEACTIVATE_USER(false, true),
+        EDIT_USER(false, true),
+        DELETE_USER(false, true),
 
-        CREATE_ROLE,
-        EDIT_ROLE,
-        DELETE_ROLE,
+        CREATE_ROLE(false, true),
+        EDIT_ROLE(false, true),
+        DELETE_ROLE(false, true);
+
+        public final boolean returnsResultSet;
+        public final boolean changesRows;
+
+        Type(boolean returnsResultSet, boolean changesRows) {
+            this.returnsResultSet = returnsResultSet;
+            this.changesRows = changesRows;
+        }
     }
 }

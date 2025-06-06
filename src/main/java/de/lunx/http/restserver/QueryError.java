@@ -1,9 +1,13 @@
 package de.lunx.http.restserver;
 
-import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 public record QueryError(String title, String description) {
     public static String error(String title, String description) {
-        return new Gson().toJson(new QueryError(title, description));
+        JsonObject o = new JsonObject();
+        o.addProperty("title", title);
+        o.addProperty("description", description);
+        o.addProperty("success", false);
+        return o.toString();
     }
 }
