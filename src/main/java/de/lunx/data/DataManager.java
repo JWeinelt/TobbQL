@@ -33,6 +33,7 @@ public class DataManager {
     @Getter
     private Configuration configuration = new Configuration();
 
+    @Getter
     private final List<TDatabase> databases = new ArrayList<>();
 
     private DataManager(File baseDirectory) {
