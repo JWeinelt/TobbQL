@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import de.lunx.Main;
 import de.lunx.auth.AuthManager;
 import de.lunx.auth.User;
+import de.lunx.data.Configuration;
 import de.lunx.data.DataManager;
 import de.lunx.querying.QueryParser;
 import io.javalin.Javalin;
@@ -84,7 +85,7 @@ public class HttpServer {
                 .post("/query", ctx -> {
                     ctx.result(QueryParser.parseQuery(ctx.body()));
                 })
-                .start(25544);
-        log.info("Started HTTP server on port 25544");
+                .start(Configuration.getInstance().getPort());
+        log.info("Started HTTP server on port {}", Configuration.getInstance().getPort());
     }
 }
