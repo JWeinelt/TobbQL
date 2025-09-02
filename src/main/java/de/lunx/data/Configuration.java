@@ -23,6 +23,10 @@ public class Configuration {
     private String dataSecret = "";
     private String version = "1.0.0";
 
+    public static Configuration getInstance() {
+        return DataManager.getInstance().getConfiguration();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof Configuration c)) return false;
