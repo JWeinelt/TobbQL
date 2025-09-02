@@ -12,7 +12,7 @@ public class Configuration {
     private int tokenExpirationTimeInterval = 1;
     private ChronoUnit tokenExpirationUnit = ChronoUnit.HOURS;
 
-    private int port = 25544;
+    private int port = 8765;
     private String hostAddress = "0.0.0.0";
 
     private boolean safeMode = true;
@@ -21,6 +21,7 @@ public class Configuration {
     private final String WARNING = "DON'T CHANGE THESE VALUES UNLESS YOU KNOW WHAT YOU ARE DOING!!!";
     private String jwtSecret = "";
     private String dataSecret = "";
+    private String version = "1.0.0";
 
     @Override
     public boolean equals(Object o) {
