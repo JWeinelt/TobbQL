@@ -201,6 +201,16 @@ public class TQuery {
                 }
 
                 return new QueryResult(QueryResultType.RESULT_SET, type, 0, tables);
+            } case GET_DATABASES -> {
+                List<TDatabase> databases = DataManager.getInstance().getDatabases();
+
+                List<HashMap<String, Object>> databaseList = new ArrayList<>();
+                for (TDatabase t : databases) {
+                    HashMap<String, Object> h = new HashMap<>();
+                    h.put("dbName", t.getName());
+                    databaseList.add(h);
+                }
+                return new QueryResult(QueryResultType.RESULT_SET, type, 0, databaseList);
             }
         }
 
@@ -263,7 +273,8 @@ public class TQuery {
         SAFE_MODE_ENABLED,
         UNKNOWN_DB,
         UNKNOWN_TABLE,
-        UNKNOWN_ACTION
+        UNKNOWN_ACTION,
+        EMPTY
     }
 
     public enum Type {
@@ -285,9 +296,13 @@ public class TQuery {
         EDIT_USER(false, true),
         DELETE_USER(false, true),
 
+        GET_DATABASES(true, false),
+
         CREATE_ROLE(false, true),
         EDIT_ROLE(false, true),
-        DELETE_ROLE(false, true);
+        DELETE_ROLE(false, true),
+
+        UNKNOWN(false, false);
 
         public final boolean returnsResultSet;
         public final boolean changesRows;
